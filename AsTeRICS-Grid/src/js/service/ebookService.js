@@ -5,6 +5,8 @@ import { localStorageService } from './data/localStorageService';
 import { inputEventHandler } from '../input/inputEventHandler';
 import { MainVue } from '../vue/mainVue';
 import { i18nService } from './i18nService';
+import {GridActionYoutube} from "../model/GridActionYoutube";
+import {youtubeService} from "./youtubeService";
 
 let ebookService= {};
 
@@ -18,9 +20,39 @@ let fontPercent = 100;
 let inputElement = document.getElementById("ebookReader");
 
 ebookService.doAction = function (action) {
-
+    switch (action.action) {
+    case GridActionEbook.actions.EB_NEXT:
+        ebookService.next(action);
+    break;
+    case GridActionEbook.actions.EB_PREV:
+        ebookService.prev(action);
+    break;
+    case GridActionEbook.actions.EB_FONTSIZE_ENLARGE:
+        ebookService.fontsizeEnlarge(action);
+    break;
+    case GridActionEbook.actions.EB_FONTSIZE_REDUCE:
+    ebookService.fontsizeReduce(action);
+    break;
 
 }
+
+ebookService.next = function() {
+    rendition.next();
+};
+
+ebookService.prev = function() {
+    rendition.prev();
+};
+
+ebookService.fontsizeEnlarge = function() {
+    fontPercent += 10;
+    rendition.themes.fontSize(fontPercent + "%");
+};
+
+ebookService.fontsizeReduce = function() {
+    fontPercent -= 10;
+    rendition.themes.fontSize(fontPercent + "%");
+};
 
     /*inputElement.addEventListener('change', function (e) {
         let file = e.target.files[0];

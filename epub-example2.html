@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<!-- https://github.com/futurepress/epub.js/blob/master/examples/input.html -->
+<!-- https://github.com/futurepress/epub.js/blob/master/examples/themes.html -->
+<!-- Git commit: Strg + K -->
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>EPUB.js Input Example</title>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.1.5/jszip.min.js"></script>
+    <script src="https://github.com/futurepress/epub.js/releases/download/v0.3.88/epub.min.js"></script>
+
+</head>
+<body>
+<div id="title">
+    <input type="file" id="input">
+</div>
+<select id="toc">
+</select>
+<div id="viewer" class="scrolled" style="border: 1px solid black"></div>
+<a id="prev" href="#prev" class="arrow">‹</a>
+<a id="next" href="#next" class="arrow">›</a>
+<a id="big" href="#big" class="arrow">A</a>
+<a id="small" href="#small" class="arrow">a</a>
+
+<script>
+    let book;
+    let globalToc;
+    let currentChapter = 0;
+    let rendition;
+    let fontPercent = 100;
+
+    let inputElement = document.getElementById("input");
+
+    inputElement.addEventListener('change', function (e) {
+        let file = e.target.files[0];
+        if (window.FileReader) {
+            let reader = new FileReader();
+            reader.onload = openBook;
+            reader.readAsArrayBuffer(file);
+        }
+    });
+
+    async function openBook(e){
+        if(book) book.destroy();
+        /*let options = {
+            requestMethod: "xy",
+            encoding: "xyz"
+        };
+        let options2 = {};
+        options2.requestMethod = "xy";
+        options2.encoding = "xyz";*/
+        // new Book(url, {requestMethod: "xy", encoding: "xyz"});
+        // new Book(url, options);
+        // new Book(url, options2);
+        book = ePub();
+        console.log(book.opened, book.pagelist)
+
+        let title = document.getElementById("title");
+        let next = document.getElementById("next");
+        let prev = document.getElementById("prev");
+        let big = document.getElementById("big");
+        let small = document.getElementById("small");
+
+        let bookUrl = e;
+        let bookData = e && e.target ? e.target.result :null;
+        if(bookData) {
+            await book.open(bookData, "binary");
+        } else {
+            await book.open(bookUrl);
+        }
+
+        //let promise = book.open(bookData, "binary");
+        /*promise.then(function() {
+            console.log("Buch fertig geladen");
+        });
+        await promise;
+        console.log("book.open vorbei... Buch wird geladen...");*/
+
+        book.loaded.navigation.then(function(toc){
+            let select = document.getElementById("toc"),
+                docfrag = document.createDocumentFragment();
+            globalToc = toc.toc;
+            toc.forEach(function(chapter) {
+                let option = document.createElement("option");
+                option.textContent = chapter.label;
+                option.ref = chapter.href;
+
+                docfrag.appendChild(option);
+            });
+
+            select.appendChild(docfrag);
+
+            select.onchange = function(){
+                let index = select.selectedIndex,
+                    url = select.options[index].ref;
+                console.log(index, url)
+                rendition.display(url);
+                return false;
+            };
+        });
+
+        rendition = book.renderTo("viewer", {
+            width: 700,
+            height: 100,
+            allowScriptedContent: true
+        });
+
+        rendition.display(20);
+
+        let keyListener = function(e){
+            console.log(e)
+            // Left Key
+            if (!e.ctrlKey && (e.keyCode || e.which) == 37) {
+                rendition.prev();
+            }
+
+            // Left Key
+            if (e.ctrlKey && (e.keyCode || e.which) == 37) {
+                if(currentChapter > 0) {
+                    currentChapter--;
+                }
+                rendition.display(globalToc[currentChapter].href);
+            }
+
+            // Right Key
+            if (!e.ctrlKey && (e.keyCode || e.which) == 39) {
+                rendition.next();
+            }
+
+            // Right Key
+            if (e.ctrlKey && (e.keyCode || e.which) == 39) {
+                if(currentChapter < globalToc.length - 1) {
+                    currentChapter++;
+                }
+                rendition.display(globalToc[currentChapter].href);
+            }
+
+            // UP Key
+            if ((e.keyCode || e.which) == 38) {
+                fontPercent = fontPercent + 10;
+                rendition.themes.fontSize(fontPercent + "%");
+            }
+
+            // DOWN Key
+            if ((e.keyCode || e.which) == 40) {
+                fontPercent = fontPercent - 10;
+                rendition.themes.fontSize(fontPercent + "%");
+            }
+        };
+
+        //rendition.on("keyup", keyListener);
+        rendition.on("relocated", function(location){
+            console.log(location);
+        });
+
+        next.addEventListener("click", function(e){
+            rendition.next();
+            e.preventDefault();
+        }, false);
+
+        prev.addEventListener("click", function(e){
+            rendition.prev();
+            e.preventDefault();
+        }, false);
+
+        ebookService.fontBig = function() {
+            fontPercent += 10;
+            rendition.themes.fontSize(fontPercent + "%");
+        };
+
+        ebookService.smallBig = function() {
+            fontPercent -= 10;
+            rendition.themes.fontSize(fontPercent + "%");
+        };
+
+        document.addEventListener("keyup", keyListener, false);
+    }
+    openBook("https://s3.amazonaws.com/moby-dick/");
+</script>
+</body>
+</html>
